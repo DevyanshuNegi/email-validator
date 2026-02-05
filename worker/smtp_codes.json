@@ -1,0 +1,337 @@
+{
+  "version": "1.0",
+  "description": "SMTP RFC 5321 Response Code Categorization for Email Validation Worker",
+  "last_updated": "2024",
+  
+  "code_categories": {
+    "success": {
+      "range": "2xx",
+      "type": "permanent_success",
+      "action": "accept",
+      "description": "Requested action completed successfully"
+    },
+    "temporary_failure": {
+      "range": "4xx",
+      "type": "temporary",
+      "action": "retry",
+      "description": "Requested action not taken due to temporary condition",
+      "retry_strategy": "exponential_backoff",
+      "max_retries": 3
+    },
+    "permanent_failure": {
+      "range": "5xx",
+      "type": "permanent",
+      "action": "reject",
+      "description": "Requested action not taken due to permanent condition"
+    }
+  },
+
+  "specific_codes": {
+    "200": {
+      "category": "success",
+      "type": "valid",
+      "action": "accept",
+      "description": "Non-standard success response",
+      "validation_result": "valid"
+    },
+    "211": {
+      "category": "success",
+      "type": "system_status",
+      "action": "log",
+      "description": "System status or help reply",
+      "validation_result": "info_only"
+    },
+    "214": {
+      "category": "success",
+      "type": "help_message",
+      "action": "log",
+      "description": "Help message",
+      "validation_result": "info_only"
+    },
+    "220": {
+      "category": "success",
+      "type": "service_ready",
+      "action": "continue",
+      "description": "Service ready",
+      "validation_result": "service_available"
+    },
+    "221": {
+      "category": "success",
+      "type": "service_closing",
+      "action": "close_connection",
+      "description": "Service closing transmission channel",
+      "validation_result": "connection_closed"
+    },
+    "250": {
+      "category": "success",
+      "type": "valid",
+      "action": "accept",
+      "description": "Requested mail action okay, completed",
+      "validation_result": "valid",
+      "catchall_behavior": "may_indicate_catchall_if_accepts_invalid_addresses"
+    },
+    "251": {
+      "category": "success",
+      "type": "valid_forward",
+      "action": "accept",
+      "description": "User not local; will forward to <forward-path>",
+      "validation_result": "valid",
+      "catchall_indicator": "medium",
+      "notes": "Indicates forwarding behavior, may suggest catch-all domain"
+    },
+    "252": {
+      "category": "success",
+      "type": "catchall_strong_indicator",
+      "action": "accept",
+      "description": "Cannot VRFY user, but will accept message and attempt delivery",
+      "validation_result": "catchall_detected",
+      "catchall_indicator": "strong",
+      "notes": "Server accepts mail without verifying user - strong catch-all indicator"
+    },
+    "354": {
+      "category": "success",
+      "type": "data_ready",
+      "action": "send_data",
+      "description": "Start mail input; end with <CRLF>.<CRLF>",
+      "validation_result": "ready_for_data"
+    },
+    "421": {
+      "category": "temporary_failure",
+      "type": "service_unavailable",
+      "action": "retry",
+      "description": "Service not available, closing transmission channel",
+      "validation_result": "temporary_failure",
+      "retry_after_seconds": 300,
+      "max_retries": 3
+    },
+    "450": {
+      "category": "temporary_failure",
+      "type": "greylisting",
+      "action": "retry",
+      "description": "Requested mail action not taken: mailbox unavailable (e.g., mailbox busy)",
+      "validation_result": "temporary_failure",
+      "retry_after_seconds": 60,
+      "max_retries": 3,
+      "notes": "Commonly used for greylisting - retry after delay"
+    },
+    "451": {
+      "category": "temporary_failure",
+      "type": "greylisting",
+      "action": "retry",
+      "description": "Requested action aborted: local error in processing",
+      "validation_result": "temporary_failure",
+      "retry_after_seconds": 300,
+      "max_retries": 3,
+      "notes": "Often indicates greylisting or temporary server issues - MUST retry with exponential backoff"
+    },
+    "452": {
+      "category": "temporary_failure",
+      "type": "inbox_full",
+      "action": "retry",
+      "description": "Requested action not taken: insufficient system storage",
+      "validation_result": "temporary_failure",
+      "retry_after_seconds": 3600,
+      "max_retries": 2,
+      "notes": "Inbox full or server overloaded - retry after longer delay"
+    },
+    "500": {
+      "category": "permanent_failure",
+      "type": "syntax_error",
+      "action": "reject",
+      "description": "Syntax error, command unrecognized",
+      "validation_result": "invalid",
+      "notes": "May indicate server configuration issue"
+    },
+    "501": {
+      "category": "permanent_failure",
+      "type": "syntax_error",
+      "action": "reject",
+      "description": "Syntax error in parameters or arguments",
+      "validation_result": "invalid"
+    },
+    "502": {
+      "category": "permanent_failure",
+      "type": "command_not_implemented",
+      "action": "reject",
+      "description": "Command not implemented",
+      "validation_result": "invalid"
+    },
+    "503": {
+      "category": "temporary_failure",
+      "type": "bad_sequence",
+      "action": "retry",
+      "description": "Bad sequence of commands",
+      "validation_result": "temporary_failure",
+      "retry_after_seconds": 0,
+      "notes": "May require restarting SMTP conversation"
+    },
+    "504": {
+      "category": "permanent_failure",
+      "type": "parameter_not_implemented",
+      "action": "reject",
+      "description": "Command parameter not implemented",
+      "validation_result": "invalid"
+    },
+    "521": {
+      "category": "permanent_failure",
+      "type": "domain_not_accept_mail",
+      "action": "reject",
+      "description": "Domain does not accept mail",
+      "validation_result": "invalid",
+      "notes": "Domain does not accept mail (RFC 7504)"
+    },
+    "530": {
+      "category": "permanent_failure",
+      "type": "authentication_required",
+      "action": "reject",
+      "description": "Authentication required",
+      "validation_result": "invalid"
+    },
+    "550": {
+      "category": "permanent_failure",
+      "type": "user_unknown",
+      "action": "reject",
+      "description": "Requested action not taken: mailbox unavailable",
+      "validation_result": "invalid",
+      "notes": "User does not exist - HARD BOUNCE - do not retry"
+    },
+    "551": {
+      "category": "permanent_failure",
+      "type": "user_not_local",
+      "action": "reject",
+      "description": "User not local; please try <forward-path>",
+      "validation_result": "invalid"
+    },
+    "552": {
+      "category": "permanent_failure",
+      "type": "mailbox_full",
+      "action": "reject",
+      "description": "Requested mail action aborted: exceeded storage allocation",
+      "validation_result": "invalid",
+      "notes": "Permanent mailbox full (different from 452 which is temporary)"
+    },
+    "553": {
+      "category": "permanent_failure",
+      "type": "mailbox_name_not_allowed",
+      "action": "reject",
+      "description": "Requested action not taken: mailbox name not allowed",
+      "validation_result": "invalid"
+    },
+    "554": {
+      "category": "permanent_failure",
+      "type": "transaction_failed",
+      "action": "reject",
+      "description": "Transaction failed",
+      "validation_result": "invalid"
+    }
+  },
+
+  "catchall_detection": {
+    "strategy": "behavioral_analysis",
+    "description": "Catch-all domains accept mail for any recipient address. Detection requires testing with invalid addresses.",
+    "indicators": {
+      "252": {
+        "confidence": "high",
+        "description": "Cannot VRFY user, but will accept message - strong catch-all indicator",
+        "action": "flag_as_catchall"
+      },
+      "251": {
+        "confidence": "medium",
+        "description": "User not local; will forward - may indicate catch-all behavior",
+        "action": "flag_for_further_testing"
+      },
+      "250_with_invalid_address": {
+        "confidence": "high",
+        "description": "Returns 250 OK for both valid AND invalid addresses",
+        "action": "test_with_random_invalid_address",
+        "test_method": "Send RCPT TO with random non-existent address, if 250 then catch-all"
+      }
+    },
+    "detection_algorithm": [
+      "1. Perform normal validation with real address",
+      "2. If response is 250/251/252, test with random invalid address (e.g., test12345@domain.com)",
+      "3. If invalid address also returns 250/251/252, domain is catch-all",
+      "4. If invalid address returns 550, domain is NOT catch-all"
+    ]
+  },
+
+  "decision_tree": {
+    "step_1_check_code_range": {
+      "2xx": {
+        "action": "proceed_to_step_2",
+        "description": "Success response - check specific code"
+      },
+      "4xx": {
+        "action": "check_retry_strategy",
+        "description": "Temporary failure - apply retry logic"
+      },
+      "5xx": {
+        "action": "mark_as_invalid",
+        "description": "Permanent failure - reject email"
+      }
+    },
+    "step_2_specific_code_handling": {
+      "250": "mark_as_valid_and_check_catchall",
+      "251": "mark_as_valid_flag_catchall_medium",
+      "252": "mark_as_valid_flag_catchall_high",
+      "550": "mark_as_invalid_user_unknown",
+      "451": "mark_as_temporary_retry_with_backoff",
+      "452": "mark_as_temporary_retry_after_delay"
+    },
+    "retry_strategy": {
+      "450": {
+        "initial_delay_seconds": 60,
+        "max_retries": 3,
+        "backoff_multiplier": 2
+      },
+      "451": {
+        "initial_delay_seconds": 300,
+        "max_retries": 3,
+        "backoff_multiplier": 2,
+        "notes": "Greylisting - exponential backoff required"
+      },
+      "452": {
+        "initial_delay_seconds": 3600,
+        "max_retries": 2,
+        "backoff_multiplier": 1.5,
+        "notes": "Inbox full - longer delay needed"
+      }
+    }
+  },
+
+  "validation_result_mapping": {
+    "valid": {
+      "codes": ["200", "250", "251", "252"],
+      "database_status": "valid",
+      "can_send_email": true
+    },
+    "invalid": {
+      "codes": ["500", "501", "502", "504", "521", "530", "550", "551", "552", "553", "554"],
+      "database_status": "invalid",
+      "can_send_email": false,
+      "reason": "permanent_failure"
+    },
+    "temporary_failure": {
+      "codes": ["421", "450", "451", "452", "503"],
+      "database_status": "pending_retry",
+      "can_send_email": false,
+      "reason": "temporary_failure",
+      "requires_retry": true
+    },
+    "catchall": {
+      "codes": ["252", "250_with_invalid_test"],
+      "database_status": "valid_catchall",
+      "can_send_email": true,
+      "notes": "Domain accepts all addresses - validation less reliable"
+    }
+  },
+
+  "implementation_notes": {
+    "550_user_unknown": "This is a HARD BOUNCE. The user does not exist. Do NOT retry. Mark as invalid immediately.",
+    "452_inbox_full": "This is a SOFT BOUNCE. The inbox is temporarily full. Retry after 1 hour, max 2 retries.",
+    "451_greylisting": "This is a SOFT BOUNCE due to greylisting. Retry after 5 minutes with exponential backoff, max 3 retries.",
+    "catchall_detection": "To detect catch-all: 1) Validate real address, 2) If 250/251/252, test with random invalid address, 3) If invalid also returns 250/251/252, it's catch-all. Code 252 is the strongest single-code indicator.",
+    "retry_logic": "All 4xx codes should be retried. Use exponential backoff. Track retry count in database.",
+    "connection_handling": "Use net.Dialer to bind to specific local IPs as per architecture requirements."
+  }
+}

@@ -1,0 +1,6 @@
+email,expected_result,category
+user1@gmail.com,valid,valid_gmail
+test@nonexistentdomain12345xyz.com,invalid,invalid_mx
+invalid@email,invalid,syntax_error
+user@yahoo.com,valid,valid_other
+disposable@mailinator.com,disposable,disposable_domain

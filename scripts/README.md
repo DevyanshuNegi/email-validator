@@ -1,0 +1,1 @@
+# Scripts\n\nExecutable scripts for testing and automation.\n\n- `test-suite.sh`: Comprehensive test suite for the entire system\n- `test-enterprise-features.sh`: Tests enterprise features (SOCKS5, retry, catch-all)\n\n## Usage\n\n```bash\n# From project root\n./scripts/test-suite.sh\n./scripts/test-enterprise-features.sh\n```

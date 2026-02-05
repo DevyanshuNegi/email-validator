@@ -1,0 +1,15 @@
+# Project: Hybrid Email Validator SaaS
+# Tech Stack:
+- Frontend/API Hub: Next.js 14 (App Router), Node.js, TypeScript.
+- Queue: Redis (ioredis for Node, go-redis for Go).
+- Worker: Go (Golang) 1.21+.
+- Database: PostgreSQL (Prisma ORM).
+
+# Architecture Rules:
+1. MONOREPO: Root directory contains `/hub` (Next.js) and `/worker` (Go).
+2. NO SMTP IN NODE: Node.js handles UI, payments, and pushes to Redis. It NEVER does SMTP checks.
+3. GO CONCURRENCY: The Go worker uses Goroutines to pull from Redis (BRPOP). It must use `net.Dialer` to bind to specific local IPs.
+4. ERROR HANDLING: Implement Retry logic for SMTP 450/451 (Greylisting).
+
+# Keep in mind :
+- respect the rate limiting, and never run more than 2 email per second from using a single IP ( also keep in mind if multiple workers using the same IP should not exceed the limit )

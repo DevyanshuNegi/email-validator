@@ -1,0 +1,51 @@
+# Dependencies
+node_modules/
+.next/
+generated/
+
+# Logs
+logs/*.log
+logs/*.txt
+!logs/.gitkeep
+
+# Test Results
+tests/results/*
+!tests/results/.gitkeep
+
+# Build outputs
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+validator-worker
+
+# Environment
+.env
+.env.local
+.env*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
