@@ -1,0 +1,27 @@
+# Development override for docker-compose.yml
+# Use with: docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+
+services:
+  worker:
+    build:
+      context: ./worker
+      dockerfile: Dockerfile.dev
+    volumes:
+      # Mount source code for hot reload
+      - ./worker:/app
+      # Exclude build artifacts (anonymous volumes override the mount)
+      - /app/tmp
+    environment:
+      # Force dev mode
+      - IS_DEV=true
+      # Use service names for Docker network
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/emailvalidator?sslmode=disable
+      - REDIS_ADDR=redis:6379
+      - REDIS_PASSWORD=
+      - REDIS_DB=0
+      - WORKER_HOSTNAME=worker1.devyanshu.me
+    # Remove restart policy for dev (easier to see crashes)
+    restart: "no"
+    # Keep container running for debugging
+    stdin_open: true
+    tty: true

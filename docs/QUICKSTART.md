@@ -42,6 +42,16 @@ Keep this terminal open. You should see:
 
 ### 3. Setup Worker (1 minute)
 
+**Option A: Run with Docker Compose (Easiest)**
+```bash
+# Start worker (will build automatically on first run)
+docker compose up -d worker
+
+# View logs
+docker compose logs -f worker
+```
+
+**Option B: Run Standalone (Development)**
 Open a **new terminal**:
 
 ```bash
@@ -52,7 +62,9 @@ go build -o validator-worker .
 
 You should see:
 ```
-🚀 Starting Email Validator Worker...
+🚀 Starting Email Validator Worker (Enterprise Edition - Production Safe)...
+🔧 Running in DEV MODE - Using MailHog (localhost:1025)
+🛡️  Rate Limiter initialized (Global: 2/sec TOTAL, Domain-specific limits active)
 ✅ Connected to Redis
 ✅ Connected to PostgreSQL
 ✅ Started 50 workers
@@ -105,8 +117,31 @@ docker compose up -d postgres
 ## Stopping Everything
 
 ```bash
-# Stop worker: Ctrl+C in worker terminal
+# If worker is running in Docker:
+docker compose stop worker
+
+# If worker is running standalone: Ctrl+C in worker terminal
 # Stop hub: Ctrl+C in hub terminal
-# Stop infrastructure:
+# Stop all infrastructure:
 docker compose down
+```
+
+## Docker Compose Worker Management
+
+```bash
+# Start worker
+docker compose up -d worker
+
+# Stop worker
+docker compose stop worker
+
+# Restart worker
+docker compose restart worker
+
+# View logs
+docker compose logs -f worker
+
+# Rebuild worker (after code changes)
+docker compose build worker
+docker compose up -d worker
 ```

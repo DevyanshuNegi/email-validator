@@ -1,0 +1,20 @@
+[
+  {
+    "email": "devyanshunegi@gmail.com",
+    "expected_result": "valid",
+    "category": "valid_gmail",
+    "description": "Valid email - should be VALID"
+  },
+  {
+    "email": "thisuserdoesnotexist123456@gmail.com",
+    "expected_result": "invalid",
+    "category": "invalid_user",
+    "description": "Invalid user - should be INVALID (user does not exist)"
+  },
+  {
+    "email": "fakeuser@this-domain-totally-does-not-exist.com",
+    "expected_result": "invalid",
+    "category": "invalid_mx",
+    "description": "Invalid domain - should be INVALID (no MX records)"
+  }
+]

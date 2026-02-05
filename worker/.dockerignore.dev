@@ -1,0 +1,11 @@
+# Build artifacts (excluded from volume mount)
+tmp/
+validator-worker
+*.exe
+*.exe~
+
+# But include source files
+!*.go
+!go.mod
+!go.sum
+!.air.toml

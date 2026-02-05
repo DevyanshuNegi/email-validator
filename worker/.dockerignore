@@ -1,0 +1,21 @@
+# Build artifacts
+validator-worker
+*.exe
+*.exe~
+
+# Environment files (passed via docker-compose)
+.env
+.env.local
+
+# Documentation
+*.md
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db

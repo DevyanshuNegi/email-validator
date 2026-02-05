@@ -1,0 +1,46 @@
+# Git
+.git
+.gitignore
+
+# Documentation
+*.md
+docs/
+
+# Tests
+tests/
+scripts/
+
+# Logs
+logs/
+
+# Node modules (for hub)
+node_modules/
+
+# Build artifacts
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment files (will be passed via docker-compose)
+.env
+.env.local
+
+# Results
+*.csv
+*.json
+*.txt
+!go.mod
+!go.sum

@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   postgres:
     image: postgres:16-alpine
@@ -47,6 +45,40 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
+  worker:
+    build:
+      context: ./worker
+      dockerfile: Dockerfile
+    container_name: email-validator-worker
+    environment:
+      # Development mode (set to false for production)
+      - IS_DEV=${IS_DEV:-true}
+      # Database connection (uses service name 'postgres' in Docker network)
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/emailvalidator?sslmode=disable
+      # Redis connection (uses service name 'redis' in Docker network)
+      - REDIS_ADDR=redis:6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+      - REDIS_DB=${REDIS_DB:-0}
+      # Worker hostname (required for SMTP HELO)
+      - WORKER_HOSTNAME=${WORKER_HOSTNAME:-worker1.devyanshu.me}
+      # SOCKS5 Proxy (optional, for production)
+      - SOCKS5_PROXY=${SOCKS5_PROXY:-}
+      - PROXY_USER=${PROXY_USER:-}
+      - PROXY_PASS=${PROXY_PASS:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mailhog:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - default
+    # Keep container running even if worker exits (for debugging)
+    # Remove this if you want auto-restart on crash
+    # restart: on-failure
 
 volumes:
   postgres_data:

@@ -1,0 +1,4 @@
+email,expected_result,category
+devyanshunegi@gmail.com,valid,valid_gmail
+thisuserdoesnotexist123456@gmail.com,invalid,invalid_user
+fakeuser@this-domain-totally-does-not-exist.com,invalid,invalid_mx
