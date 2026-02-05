@@ -1,0 +1,47 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum EmailStatus {
+  PENDING
+  VALID
+  INVALID
+  CATCH_ALL
+  GREYLISTED
+  UNKNOWN
+}
+
+enum JobStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+model Job {
+  id          String        @id @default(uuid())
+  totalEmails Int
+  status      JobStatus     @default(PENDING)
+  createdAt   DateTime      @default(now())
+  emailChecks EmailCheck[]
+}
+
+model EmailCheck {
+  id          String      @id @default(uuid())
+  jobId       String
+  email       String
+  status      EmailStatus @default(PENDING)
+  smtpCode    Int?
+  bounceReason String?
+  job         Job         @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  
+  @@index([jobId])
+}

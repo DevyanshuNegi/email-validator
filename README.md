@@ -267,6 +267,7 @@ docker compose ps
 # Test API
 curl http://localhost:8080
 
+# :LEARN
 # Test Redis
 docker exec email-validator-redis redis-cli PING
 # Should return: PONG
