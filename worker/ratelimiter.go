@@ -19,8 +19,9 @@ type RateLimiterManager struct {
 
 // NewRateLimiterManager creates a new rate limiter manager with safety limits
 func NewRateLimiterManager() *RateLimiterManager {
-	// Global limit: 10 checks/second
-	globalLimiter := rate.NewLimiter(10, 10) // 10 per second, burst of 10
+	// CRITICAL: Global limit: 2 checks/second TOTAL (Safety Valve)
+	// This is the absolute maximum across ALL domains and ALL goroutines
+	globalLimiter := rate.NewLimiter(2, 2) // 2 per second, burst of 2
 
 	// Domain-specific limits
 	domainLimiters := make(map[string]*rate.Limiter)
@@ -46,16 +47,12 @@ func NewRateLimiterManager() *RateLimiterManager {
 	}
 }
 
-// Wait waits for both global and domain-specific rate limits
+// Wait waits for domain-specific rate limits
+// NOTE: Global rate limit is enforced in main loop before job pickup
 // Returns an error if context is cancelled
 func (rlm *RateLimiterManager) Wait(ctx context.Context, domain string) error {
 	// Normalize domain to lowercase
 	domain = strings.ToLower(domain)
-	
-	// Wait for global limiter first
-	if err := rlm.globalLimiter.Wait(ctx); err != nil {
-		return err
-	}
 	
 	// Get or create domain limiter
 	rlm.mu.RLock()

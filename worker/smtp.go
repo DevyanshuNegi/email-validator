@@ -66,20 +66,61 @@ func CheckEmail(ctx context.Context, email string, isDevMode bool, proxyConfig *
 		mailServer = "localhost"
 		port = "1025"
 	} else {
+		// ============================================================
+		// CRITICAL: MX LOOKUP VALIDATION (The "0% Match" Bug Fix)
+		// ============================================================
 		// PRODUCTION MODE: Look up MX records
+		// CRITICAL: If MX lookup fails or returns empty, mark as INVALID immediately
+		// Do NOT proceed to SMTP checks
 		mxRecords, err := net.LookupMX(domain)
-		if err != nil || len(mxRecords) == 0 {
+		
+		// Check for lookup errors
+		if err != nil {
+			log.Printf("❌ MX lookup failed for domain %s: %v", domain, err)
 			return &SMTPResult{
-				Status:      StatusInvalid,
-				SMTPCode:    550,
+				Status:       StatusInvalid,
+				SMTPCode:     550,
+				BounceReason: fmt.Sprintf("MX lookup failed: %v", err),
+				IsRetryable:  false,
+			}, nil
+		}
+
+		// Check for empty MX records list
+		if len(mxRecords) == 0 {
+			log.Printf("❌ No MX records found for domain %s", domain)
+			return &SMTPResult{
+				Status:       StatusInvalid,
+				SMTPCode:     550,
 				BounceReason: "No MX records found",
-				IsRetryable: false,
+				IsRetryable:  false,
+			}, nil
+		}
+
+		// Validate MX record hostname is not empty
+		if mxRecords[0].Host == "" || strings.TrimSpace(mxRecords[0].Host) == "" {
+			log.Printf("❌ Invalid MX record (empty hostname) for domain %s", domain)
+			return &SMTPResult{
+				Status:       StatusInvalid,
+				SMTPCode:     550,
+				BounceReason: "Invalid MX record (empty hostname)",
+				IsRetryable:  false,
 			}, nil
 		}
 
 		// Use the first MX record
 		mailServer = strings.TrimSuffix(mxRecords[0].Host, ".")
 		port = "25"
+		
+		// Final validation: mailServer must not be empty after trimming
+		if mailServer == "" {
+			log.Printf("❌ Invalid MX record (empty after trim) for domain %s", domain)
+			return &SMTPResult{
+				Status:       StatusInvalid,
+				SMTPCode:     550,
+				BounceReason: "Invalid MX record (empty hostname after processing)",
+				IsRetryable:  false,
+			}, nil
+		}
 	}
 
 	// ============================================================

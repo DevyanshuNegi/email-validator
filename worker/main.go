@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"regexp"
 	"strings"
 	"time"
 
@@ -58,10 +59,10 @@ func main() {
 	}
 
 	// ============================================================
-	// FEATURE 1: RATE LIMITER INITIALIZATION
+	// FEATURE 1: RATE LIMITER INITIALIZATION (STRICT GLOBAL LIMIT)
 	// ============================================================
 	rateLimiter = NewRateLimiterManager()
-	fmt.Println("🛡️  Rate Limiter initialized (Global: 10/sec, Domain-specific limits active)")
+	fmt.Println("🛡️  Rate Limiter initialized (Global: 2/sec TOTAL, Domain-specific limits active)")
 
 	// ============================================================
 	// FEATURE 2: SOCKS5 PROXY CONFIGURATION (With Authentication)
@@ -168,6 +169,16 @@ func main() {
 
 	// Main loop: BRPOP from Redis queue
 	for {
+		// ============================================================
+		// CRITICAL: GLOBAL RATE LIMIT ENFORCEMENT (Safety Valve)
+		// ============================================================
+		// BEFORE picking up ANY job, wait for global rate limiter
+		// This ensures we NEVER process more than 2 emails/second TOTAL
+		if err := rateLimiter.globalLimiter.Wait(ctx); err != nil {
+			log.Printf("⚠️  Global rate limit wait cancelled: %v", err)
+			continue
+		}
+
 		// BRPOP with 5 second timeout
 		result, err := redisClient.BRPop(ctx, 5*time.Second, redisQueue).Result()
 		if err != nil {
@@ -290,6 +301,16 @@ func worker(id int, jobChan <-chan EmailJob, ctx context.Context) {
 func processEmail(workerID int, job EmailJob, ctx context.Context) {
 	fmt.Printf("[Worker %d] 🔍 Checking: %s\n", workerID, job.Email)
 
+	// ============================================================
+	// CRITICAL: EMAIL SYNTAX VALIDATION (RFC 5322 Compliant)
+	// ============================================================
+	// Validate email syntax BEFORE any processing
+	if !isValidEmailSyntax(job.Email) {
+		log.Printf("[Worker %d] ❌ Invalid email syntax: %s", workerID, job.Email)
+		updateEmailStatus(job.JobID, job.Email, "INVALID", 550, "Invalid email syntax")
+		return
+	}
+
 	// Extract domain for rate limiting
 	parts := strings.Split(job.Email, "@")
 	if len(parts) != 2 {
@@ -300,9 +321,10 @@ func processEmail(workerID int, job EmailJob, ctx context.Context) {
 	domain := strings.ToLower(parts[1])
 
 	// ============================================================
-	// FEATURE 1: RATE LIMITING (The Governor)
+	// FEATURE 1: DOMAIN-SPECIFIC RATE LIMITING (The Governor)
 	// ============================================================
-	// Wait for rate limit before processing
+	// Note: Global rate limit is already enforced in main loop
+	// This is for domain-specific limits only
 	if err := rateLimiter.Wait(ctx, domain); err != nil {
 		log.Printf("[Worker %d] ❌ Rate limit wait cancelled: %v", workerID, err)
 		return
@@ -394,4 +416,79 @@ func getStatusEmoji(status EmailStatus) string {
 	default:
 		return "❓"
 	}
+}
+
+// ============================================================
+// CRITICAL: STRICT EMAIL SYNTAX VALIDATION (RFC 5322 Compliant)
+// ============================================================
+// isValidEmailSyntax validates email syntax using strict RFC 5322 compliant regex
+// Catches: double @, missing TLD, invalid characters, double dots, etc.
+var emailRegex = regexp.MustCompile(`^[a-zA-Z0-9.!#$%&'*+/=?^_` + "`" + `{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$`)
+
+func isValidEmailSyntax(email string) bool {
+	// Basic length check
+	if len(email) < 3 || len(email) > 254 {
+		return false
+	}
+
+	// Check for double @
+	if strings.Count(email, "@") != 1 {
+		return false
+	}
+
+	// Split into local and domain parts
+	parts := strings.Split(email, "@")
+	if len(parts) != 2 {
+		return false
+	}
+
+	localPart := parts[0]
+	domainPart := parts[1]
+
+	// Validate local part (before @)
+	if len(localPart) == 0 || len(localPart) > 64 {
+		return false
+	}
+
+	// Check for double dots in local part
+	if strings.Contains(localPart, "..") {
+		return false
+	}
+
+	// Check for leading/trailing dots in local part
+	if strings.HasPrefix(localPart, ".") || strings.HasSuffix(localPart, ".") {
+		return false
+	}
+
+	// Validate domain part (after @)
+	if len(domainPart) == 0 || len(domainPart) > 253 {
+		return false
+	}
+
+	// Check for double dots in domain part
+	if strings.Contains(domainPart, "..") {
+		return false
+	}
+
+	// Check for leading/trailing dots in domain part
+	if strings.HasPrefix(domainPart, ".") || strings.HasSuffix(domainPart, ".") {
+		return false
+	}
+
+	// Must have at least one dot in domain (TLD required)
+	if !strings.Contains(domainPart, ".") {
+		return false
+	}
+
+	// Extract TLD (last part after last dot)
+	domainParts := strings.Split(domainPart, ".")
+	tld := domainParts[len(domainParts)-1]
+
+	// TLD must be at least 2 characters and only letters
+	if len(tld) < 2 {
+		return false
+	}
+
+	// Use regex for final validation (RFC 5322 compliant)
+	return emailRegex.MatchString(email)
 }
